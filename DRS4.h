@@ -48,10 +48,11 @@ struct RAWWAVEFORM {
   double RawTime[4][1024];
 };
 
-enum HighLevelVariableIndex {
+enum VariableIndex {
   kPulseArea,
   kPulseAmplitude,
-  kRiseTime
+  kRiseTime,
+  kBaseline,
 };
 
 class DRS4 {
@@ -59,21 +60,33 @@ public:
   DRS4();
   DRS4(std::string);
   virtual ~DRS4();
-  void SetNumberOfEvents(unsigned int);
+  void SetNumberOfEvents(int);
   void OpenBinaryDataFile();
   void AccessTimeInfo();
   void AccessEventInfo();
   void SaveRawWaveformToROOTFile();
-  void SaveHighLevelDataToROOTFile(HighLevelVariableIndex);
+  void SaveDataToROOTFile(VariableIndex);
 
+private:
+  void SavingData(VariableIndex);
+  std::string GetVariableName(VariableIndex);
+
+  void   GetVariableValue(VariableIndex, int);
+  double CalculatePulseArea();
+  double CalculatePulseAmp();
+  double CalculateRiseTime();
+  double CalculateBaseline();
 
 private:
   std::string DataFileName;
   std::string ROOTFileName; // Raw Waveform Container File Name
 
+  bool UseAllEventsFlag;
+
   unsigned int NumberOfEvents;
 
   FILE * BinaryDataFile;
+  TTree * DataTree;
 
   THEADER TimeHeader;
   EHEADER EventHeader;
@@ -88,6 +101,11 @@ private:
   float TimeBinWidth[4][1024];
 
   std::vector<RAWWAVEFORM> RawWaveformDataVector;
+
+  /*
+    Temporary variables to initiate the data branches
+  */
+  double Variable[4];
 };
 
 #endif

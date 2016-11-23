@@ -8,14 +8,13 @@
 int main() {
   DRS4* DataSet1 = new DRS4("./Cryo100mV1kall.bin");
   DataSet1->OpenBinaryDataFile();
-  DataSet1->SetNumberOfEvents(10);
+  DataSet1->SetNumberOfEvents(-1);
   DataSet1->AccessTimeInfo();
   DataSet1->AccessEventInfo();
   DataSet1->SaveRawWaveformToROOTFile();
-  DataSet1->SaveHighLevelDataToROOTFile(kPulseArea);
-  std::cout << kPulseArea << std::endl;
-  DataSet1->SaveHighLevelDataToROOTFile(kPulseAmplitude);
-  DataSet1->SaveHighLevelDataToROOTFile(kRiseTime);
+//  DataSet1->SaveDataToROOTFile(kPulseArea);
+//  DataSet1->SaveDataToROOTFile(kPulseAmplitude);
+//  DataSet1->SaveDataToROOTFile(kRiseTime);
 
   return 0;
 }
