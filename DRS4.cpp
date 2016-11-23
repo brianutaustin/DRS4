@@ -1,3 +1,8 @@
+/*
+   Original version created by:      Stefan Ritt <stefan.ritt@psi.ch>
+   Current version developed by:     UTKL HEP group <The University of Texas at Austin>
+ */
+
 #include "DRS4.h"
 
 DRS4::DRS4() {
@@ -20,37 +25,41 @@ void DRS4::OpenBinaryDataFile() {
   return;
 }
 
-void DRS4::SetNumberOfEvents(int n) {
+void DRS4::SetNumberOfEvents(unsigned int n) {
   NumberOfEvents = n;
   return;
 }
 
-/*
+
 void DRS4::SaveRawWaveformToROOTFile() {
   ROOTFileName = DataFileName;
   ROOTFileName.erase(ROOTFileName.length() - 3, ROOTFileName.length());
-  ROOTFileName = ROOTFileName + ".root";
+  ROOTFileName = ROOTFileName + "root";
 
-  ROOTDataFile = new TFile(ROOTFileName.c_str(), "RECREATE");
+  TFile * ROOTDataFile = new TFile(ROOTFileName.c_str(), "UPDATE");
 
   // Define the raw waveform tree
-  RawWaveformDataTree = new TTree("RawWaveformDataTree", "RawWaveformDataTree");
-  RawWaveformDataTree->Branch("TimeChannel1", Time[0], "TimeChannel1[1024]/D");
-  RawWaveformDataTree->Branch("TimeChannel2", Time[1], "TimeChannel2[1024]/D");
-  RawWaveformDataTree->Branch("TimeChannel3", Time[2], "TimeChannel3[1024]/D");
-  RawWaveformDataTree->Branch("TimeChannel4", Time[3], "TimeChannel3[1024]/D");
-  RawWaveformDataTree->Branch("WaveformChannel1", Waveform[0], "WaveformChannel1[1024]/D");
-  RawWaveformDataTree->Branch("WaveformChannel2", Waveform[1], "WaveformChannel2[1024]/D");
-  RawWaveformDataTree->Branch("WaveformChannel3", Waveform[2], "WaveformChannel3[1024]/D");
-  RawWaveformDataTree->Branch("WaveformChannel4", Waveform[3], "WaveformChannel4[1024]/D");
+  RAWWAVEFORM dummyWaveformStruct;
+  TTree * DataTree = new TTree("DataTree", "DataTree");
+  DataTree->Branch("TimeChannel1", dummyWaveformStruct.RawTime[0], "TimeChannel1[1024]/D");
+  DataTree->Branch("TimeChannel2", dummyWaveformStruct.RawTime[1], "TimeChannel2[1024]/D");
+  DataTree->Branch("TimeChannel3", dummyWaveformStruct.RawTime[2], "TimeChannel3[1024]/D");
+  DataTree->Branch("TimeChannel4", dummyWaveformStruct.RawTime[3], "TimeChannel3[1024]/D");
+  DataTree->Branch("WaveformChannel1", dummyWaveformStruct.RawWaveform[0], "WaveformChannel1[1024]/D");
+  DataTree->Branch("WaveformChannel2", dummyWaveformStruct.RawWaveform[1], "WaveformChannel2[1024]/D");
+  DataTree->Branch("WaveformChannel3", dummyWaveformStruct.RawWaveform[2], "WaveformChannel3[1024]/D");
+  DataTree->Branch("WaveformChannel4", dummyWaveformStruct.RawWaveform[3], "WaveformChannel4[1024]/D");
 
-  //RawWaveformDataTree->Fill();
-  RawWaveformDataTree->Write();
+  for (unsigned int EventNumber = 0; EventNumber < NumberOfEvents; EventNumber++) {
+    dummyWaveformStruct = RawWaveformDataVector.at(EventNumber);
+    DataTree->Fill();
+  }
+
+  DataTree->Write(0, TObject::kOverwrite);
   ROOTDataFile->Close();
 
   return;
 }
-*/
 
 void DRS4::AccessTimeInfo() {
   // Read time header
@@ -74,7 +83,6 @@ void DRS4::AccessTimeInfo() {
   return;
 }
 
-
 void DRS4::AccessEventInfo() {
   if (NumberOfEvents == 0) {
     std::cout << "Set the number of events you want to analyze." << std::endl;
@@ -83,7 +91,9 @@ void DRS4::AccessEventInfo() {
     return;
   }
 
-  for (int EventNumber = 0; EventNumber < NumberOfEvents; EventNumber++) {
+  RawWaveformDataVector.clear();
+  RAWWAVEFORM dummyWaveformStruct;
+  for (unsigned int EventNumber = 0; EventNumber < NumberOfEvents; EventNumber++) {
     // Read event header
     int i = fread(&EventHeader, sizeof(EventHeader), 1, BinaryDataFile);
     if (i < 1) {
@@ -127,7 +137,92 @@ void DRS4::AccessEventInfo() {
         Time[ChannelNumber][l] += DT;
       }
     }
+
+    for (unsigned int ChannelNumber = 0; ChannelNumber < 4; ChannelNumber++) {
+      std::copy(std::begin(Waveform[ChannelNumber]), std::end(Waveform[ChannelNumber]), std::begin(dummyWaveformStruct.RawWaveform[ChannelNumber]));
+      std::copy(std::begin(Time[ChannelNumber]), std::end(Time[ChannelNumber]), std::begin(dummyWaveformStruct.RawTime[ChannelNumber]));
+    }
+    RawWaveformDataVector.push_back(dummyWaveformStruct);
   }
 
+  return;
+}
+
+void DRS4::SaveHighLevelDataToROOTFile(HighLevelVariableIndex index) {
+  TFile * ROOTDataFile = new TFile(ROOTFileName.c_str(), "UPDATE");
+  TTree * DataTree = (TTree *) ROOTDataFile->Get("DataTree");
+
+  // Fake Data
+  TRandom r;
+
+  if (index == kPulseArea) {
+    double PulseArea[4];
+    TBranch * PulseAreaChannel1 = DataTree->Branch("PulseAreaChannel1", &PulseArea[0], "PulseAreaChannel1/D");
+    TBranch * PulseAreaChannel2 = DataTree->Branch("PulseAreaChannel2", &PulseArea[1], "PulseAreaChannel2/D");
+    TBranch * PulseAreaChannel3 = DataTree->Branch("PulseAreaChannel3", &PulseArea[2], "PulseAreaChannel3/D");
+    TBranch * PulseAreaChannel4 = DataTree->Branch("PulseAreaChannel4", &PulseArea[3], "PulseAreaChannel4/D");
+
+    for (Long64_t i = 0; i < NumberOfEvents; i++) {
+      DataTree->GetEntry(i);
+      // Do something here to calculate PulseArea
+      // Fake Data
+      for (int j = 0; j < 4; j++) {
+        PulseArea[j] = r.Gaus(0, 1);
+      }
+      PulseAreaChannel1->Fill();
+      PulseAreaChannel2->Fill();
+      PulseAreaChannel3->Fill();
+      PulseAreaChannel4->Fill();
+    }
+    DataTree->Write(0, TObject::kOverwrite);
+
+  } else if (index == kPulseAmplitude) {
+    double PulseAmp[4];
+    TBranch * PulseAmplitudeChannel1 = DataTree->Branch("PulseAmplitudeChannel1", &PulseAmp[0], "PulseAmplitudeChannel1/D");
+    TBranch * PulseAmplitudeChannel2 = DataTree->Branch("PulseAmplitudeChannel2", &PulseAmp[1], "PulseAmplitudeChannel2/D");
+    TBranch * PulseAmplitudeChannel3 = DataTree->Branch("PulseAmplitudeChannel3", &PulseAmp[2], "PulseAmplitudeChannel3/D");
+    TBranch * PulseAmplitudeChannel4 = DataTree->Branch("PulseAmplitudeChannel4", &PulseAmp[3], "PulseAmplitudeChannel4/D");
+
+    for (Long64_t i = 0; i < NumberOfEvents; i++) {
+      DataTree->GetEntry(i);
+      // Do something here to calculate PulseAmp
+      // Fake Data
+      for (int j = 0; j < 4; j++) {
+        PulseAmp[j] = r.Gaus(0, 1);
+      }
+      PulseAmplitudeChannel1->Fill();
+      PulseAmplitudeChannel2->Fill();
+      PulseAmplitudeChannel3->Fill();
+      PulseAmplitudeChannel4->Fill();
+    }
+    DataTree->Write(0, TObject::kOverwrite);
+
+  } else if (index == kRiseTime) {
+    double RiseTime[4];
+    TBranch * RiseTimeChannel1 = DataTree->Branch("RiseTimeChannel1", &RiseTime[0], "RiseTimeChannel1/D");
+    TBranch * RiseTimeChannel2 = DataTree->Branch("RiseTimeChannel2", &RiseTime[1], "RiseTimeChannel2/D");
+    TBranch * RiseTimeChannel3 = DataTree->Branch("RiseTimeChannel3", &RiseTime[2], "RiseTimeChannel3/D");
+    TBranch * RiseTimeChannel4 = DataTree->Branch("RiseTimeChannel4", &RiseTime[4], "RiseTimeChannel4/D");
+
+    for (Long64_t i = 0; i < NumberOfEvents; i++) {
+      DataTree->GetEntry(i);
+      // Do something here to calculate RiseTime
+      // Fake Data
+      for (int j = 0; j < 4; j++) {
+        RiseTime[j] = r.Gaus(0, 1);
+      }
+      RiseTimeChannel1->Fill();
+      RiseTimeChannel2->Fill();
+      RiseTimeChannel3->Fill();
+      RiseTimeChannel4->Fill();
+    }
+    DataTree->Write(0, TObject::kOverwrite);
+
+  } else {
+    ROOTDataFile->Close();
+    return;
+  }
+
+  ROOTDataFile->Close();
   return;
 }

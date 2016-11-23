@@ -8,6 +8,9 @@
 
 #include <cstring>
 #include <iostream>
+#include <vector>
+#include <array>
+#include <algorithm>
 
 #include "TFile.h"
 #include "TTree.h"
@@ -15,6 +18,7 @@
 #include "TGraph.h"
 #include "TCanvas.h"
 #include "Getline.h"
+#include "TRandom.h"
 
 struct THEADER {
   char           TimeHeaderLabel[4];
@@ -39,27 +43,37 @@ struct EHEADER {
   unsigned short TriggerCellValue;
 };
 
+struct RAWWAVEFORM {
+  double RawWaveform[4][1024];
+  double RawTime[4][1024];
+};
+
+enum HighLevelVariableIndex {
+  kPulseArea,
+  kPulseAmplitude,
+  kRiseTime
+};
+
 class DRS4 {
 public:
   DRS4();
   DRS4(std::string);
   virtual ~DRS4();
+  void SetNumberOfEvents(unsigned int);
   void OpenBinaryDataFile();
-  void SaveRawWaveformToROOTFile();
   void AccessTimeInfo();
   void AccessEventInfo();
-  void SetNumberOfEvents(int);
+  void SaveRawWaveformToROOTFile();
+  void SaveHighLevelDataToROOTFile(HighLevelVariableIndex);
+
 
 private:
   std::string DataFileName;
-  std::string ROOTFileName;
+  std::string ROOTFileName; // Raw Waveform Container File Name
 
-  int NumberOfEvents;
+  unsigned int NumberOfEvents;
 
   FILE * BinaryDataFile;
-
-  TFile * ROOTDataFile;
-  TTree * RawWaveformDataTree;
 
   THEADER TimeHeader;
   EHEADER EventHeader;
@@ -73,6 +87,7 @@ private:
   double Time[4][1024];
   float TimeBinWidth[4][1024];
 
+  std::vector<RAWWAVEFORM> RawWaveformDataVector;
 };
 
 #endif
