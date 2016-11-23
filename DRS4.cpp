@@ -39,7 +39,16 @@ void DRS4::SetNumberOfEvents(int n) {
   return;
 }
 
-void DRS4::SaveRawWaveformToROOTFile() {
+void DRS4::Decode(int n) {
+  OpenBinaryDataFile();
+  SetNumberOfEvents(n);
+  AccessTimeInfo();
+  AccessEventInfo();
+
+  return;
+}
+
+void DRS4::SaveWaveformToROOTFile() {
   TFile * ROOTDataFile = new TFile(ROOTFileName.c_str(), "UPDATE");
 
   // Define the raw waveform tree
@@ -199,20 +208,37 @@ std::string DRS4::GetVariableName(VariableIndex index) {
 }
 
 void DRS4::GetVariableValue(VariableIndex index, int EventNumber) {
-  switch (index) {
-    case kPulseArea: {
-
-    }
-    case kPulseAmplitude: {
-
-    }
-    case kRiseTime: {
-
-    }
-    case kBaseline: {
-
+  for (unsigned int ChannelNumber = 0; ChannelNumber < 4; ChannelNumber++) {
+    switch (index) {
+      case kPulseArea: {
+        Variable[ChannelNumber] = CalculatePulseArea(EventNumber);
+      }
+      case kPulseAmplitude: {
+        Variable[ChannelNumber] = CalculatePulseAmplitude(EventNumber);
+      }
+      case kRiseTime: {
+        Variable[ChannelNumber] = CalculateRiseTime(EventNumber);
+      }
+      case kBaseline: {
+        Variable[ChannelNumber] = CalculateBaseline(EventNumber);
+      }
     }
   }
-
   return;
+}
+
+double DRS4::CalculatePulseArea(int EventNumber) {
+  return 0;
+}
+
+double DRS4::CalculatePulseAmplitude(int EventNumber) {
+  return 0;
+}
+
+double DRS4::CalculateRiseTime(int EventNumber) {
+  return 0;
+}
+
+double DRS4::CalculateBaseline(int EventNumber) {
+  return 0;
 }

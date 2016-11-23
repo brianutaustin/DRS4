@@ -7,14 +7,12 @@
 
 int main() {
   DRS4* DataSet1 = new DRS4("./Cryo100mV1kall.bin");
-  DataSet1->OpenBinaryDataFile();
-  DataSet1->SetNumberOfEvents(-1);
-  DataSet1->AccessTimeInfo();
-  DataSet1->AccessEventInfo();
-  DataSet1->SaveRawWaveformToROOTFile();
-//  DataSet1->SaveDataToROOTFile(kPulseArea);
-//  DataSet1->SaveDataToROOTFile(kPulseAmplitude);
-//  DataSet1->SaveDataToROOTFile(kRiseTime);
+  DataSet1->Decode(-1);
+  DataSet1->SaveWaveformToROOTFile();
+  DataSet1->SaveDataToROOTFile(kPulseArea);
+  DataSet1->SaveDataToROOTFile(kPulseAmplitude);
+  DataSet1->SaveDataToROOTFile(kRiseTime);
+  DataSet1->SaveDataToROOTFile(kBaseline);
 
   return 0;
 }

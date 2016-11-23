@@ -64,7 +64,8 @@ public:
   void OpenBinaryDataFile();
   void AccessTimeInfo();
   void AccessEventInfo();
-  void SaveRawWaveformToROOTFile();
+  void Decode(int);
+  void SaveWaveformToROOTFile();
   void SaveDataToROOTFile(VariableIndex);
 
 private:
@@ -72,10 +73,10 @@ private:
   std::string GetVariableName(VariableIndex);
 
   void   GetVariableValue(VariableIndex, int);
-  double CalculatePulseArea();
-  double CalculatePulseAmp();
-  double CalculateRiseTime();
-  double CalculateBaseline();
+  double CalculatePulseArea(int);
+  double CalculatePulseAmplitude(int);
+  double CalculateRiseTime(int);
+  double CalculateBaseline(int);
 
 private:
   std::string DataFileName;
