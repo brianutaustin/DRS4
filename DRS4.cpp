@@ -48,32 +48,6 @@ void DRS4::Decode(int n) {
   return;
 }
 
-void DRS4::SaveWaveformToROOTFile() {
-  TFile * ROOTDataFile = new TFile(ROOTFileName.c_str(), "UPDATE");
-
-  // Define the raw waveform tree
-  RAWWAVEFORM dummyWaveformStruct;
-  DataTree = new TTree("DataTree", "DataTree");
-  DataTree->Branch("TimeChannel1", dummyWaveformStruct.RawTime[0], "TimeChannel1[1024]/D");
-  DataTree->Branch("TimeChannel2", dummyWaveformStruct.RawTime[1], "TimeChannel2[1024]/D");
-  DataTree->Branch("TimeChannel3", dummyWaveformStruct.RawTime[2], "TimeChannel3[1024]/D");
-  DataTree->Branch("TimeChannel4", dummyWaveformStruct.RawTime[3], "TimeChannel3[1024]/D");
-  DataTree->Branch("WaveformChannel1", dummyWaveformStruct.RawWaveform[0], "WaveformChannel1[1024]/D");
-  DataTree->Branch("WaveformChannel2", dummyWaveformStruct.RawWaveform[1], "WaveformChannel2[1024]/D");
-  DataTree->Branch("WaveformChannel3", dummyWaveformStruct.RawWaveform[2], "WaveformChannel3[1024]/D");
-  DataTree->Branch("WaveformChannel4", dummyWaveformStruct.RawWaveform[3], "WaveformChannel4[1024]/D");
-
-  for (unsigned int EventNumber = 0; EventNumber < NumberOfEvents; EventNumber++) {
-    dummyWaveformStruct = RawWaveformDataVector.at(EventNumber);
-    DataTree->Fill();
-  }
-
-  DataTree->Write(0, TObject::kOverwrite);
-  ROOTDataFile->Close();
-
-  return;
-}
-
 void DRS4::AccessTimeInfo() {
   // Read time header
   fread(&TimeHeader, sizeof(TimeHeader), 1, BinaryDataFile);
@@ -109,8 +83,18 @@ void DRS4::AccessEventInfo() {
     std::cout << "You choose to use parts of dataset: " << NumberOfEvents <<  " events will be analyzed." << std::endl;
   }
 
-  RawWaveformDataVector.clear();
+  TFile * ROOTDataFile = new TFile(ROOTFileName.c_str(), "RECREATE");
   RAWWAVEFORM dummyWaveformStruct;
+  DataTree = new TTree("DataTree", "DataTree");
+  DataTree->Branch("TimeChannel1", dummyWaveformStruct.RawTime[0], "TimeChannel1[1024]/D");
+  DataTree->Branch("TimeChannel2", dummyWaveformStruct.RawTime[1], "TimeChannel2[1024]/D");
+  DataTree->Branch("TimeChannel3", dummyWaveformStruct.RawTime[2], "TimeChannel3[1024]/D");
+  DataTree->Branch("TimeChannel4", dummyWaveformStruct.RawTime[3], "TimeChannel3[1024]/D");
+  DataTree->Branch("WaveformChannel1", dummyWaveformStruct.RawWaveform[0], "WaveformChannel1[1024]/D");
+  DataTree->Branch("WaveformChannel2", dummyWaveformStruct.RawWaveform[1], "WaveformChannel2[1024]/D");
+  DataTree->Branch("WaveformChannel3", dummyWaveformStruct.RawWaveform[2], "WaveformChannel3[1024]/D");
+  DataTree->Branch("WaveformChannel4", dummyWaveformStruct.RawWaveform[3], "WaveformChannel4[1024]/D");
+
   for (unsigned int EventNumber = 0; EventNumber < NumberOfEvents; EventNumber++) {
     // Read event header
     int i = fread(&EventHeader, sizeof(EventHeader), 1, BinaryDataFile);
@@ -124,8 +108,6 @@ void DRS4::AccessEventInfo() {
       }
     }
 
-    std::cout << "Found event " << EventHeader.EventSerialNumberValue << "." << std::endl;
-
     // Reach channel data
     for (int ChannelNumber = 0; ChannelNumber < 5; ChannelNumber++) {
       int k = fread(Header, sizeof(Header), 1, BinaryDataFile);
@@ -133,7 +115,7 @@ void DRS4::AccessEventInfo() {
         break;
       }
       if (Header[0] != 'C') {
-        // Event header found
+        // EveCryo100mV1kall.binnt header found
         fseek(BinaryDataFile, -4, SEEK_CUR);
         break;
       }
@@ -165,80 +147,13 @@ void DRS4::AccessEventInfo() {
       std::copy(std::begin(Waveform[ChannelNumber]), std::end(Waveform[ChannelNumber]), std::begin(dummyWaveformStruct.RawWaveform[ChannelNumber]));
       std::copy(std::begin(Time[ChannelNumber]), std::end(Time[ChannelNumber]), std::begin(dummyWaveformStruct.RawTime[ChannelNumber]));
     }
-    RawWaveformDataVector.push_back(dummyWaveformStruct);
+
+    //std::cout << "Found event " << EventHeader.EventSerialNumberValue << "." << std::endl;
+    DataTree->Fill();
   }
 
-  return;
-}
-
-void DRS4::SaveDataToROOTFile(VariableIndex index) {
-  TFile * ROOTDataFile = new TFile(ROOTFileName.c_str(), "UPDATE");
-  DataTree = (TTree *) ROOTDataFile->Get("DataTree");
-
-  SavingData(index);
-
-  ROOTDataFile->Close();
-  return;
-}
-
-void DRS4::SavingData(VariableIndex index) {
-  TBranch * TheBranch1 = DataTree->Branch(Form("%s%i",GetVariableName(index).c_str(), 1), &Variable[0], Form("%s%i%s",GetVariableName(index).c_str(), 1, "/D"));
-  TBranch * TheBranch2 = DataTree->Branch(Form("%s%i",GetVariableName(index).c_str(), 2), &Variable[1], Form("%s%i%s",GetVariableName(index).c_str(), 2, "/D"));
-  TBranch * TheBranch3 = DataTree->Branch(Form("%s%i",GetVariableName(index).c_str(), 3), &Variable[2], Form("%s%i%s",GetVariableName(index).c_str(), 3, "/D"));
-  TBranch * TheBranch4 = DataTree->Branch(Form("%s%i",GetVariableName(index).c_str(), 4), &Variable[3], Form("%s%i%s",GetVariableName(index).c_str(), 4, "/D"));
-
-  for (unsigned int EventNumber = 0; EventNumber < NumberOfEvents; EventNumber++) {
-    DataTree->GetEntry(EventNumber);
-    GetVariableValue(index, EventNumber);
-    TheBranch1->Fill();
-    TheBranch2->Fill();
-    TheBranch3->Fill();
-    TheBranch4->Fill();
-  }
   DataTree->Write(0, TObject::kOverwrite);
-}
+  ROOTDataFile->Close();
 
-std::string DRS4::GetVariableName(VariableIndex index) {
-  switch (index) {
-    case kPulseArea:      return "PulseAreaChannel";
-    case kPulseAmplitude: return "PulseAmplitudeChannel";
-    case kRiseTime:       return "RiseTimeChannel";
-    case kBaseline:       return "BaseLineChannel";
-  }
-}
-
-void DRS4::GetVariableValue(VariableIndex index, int EventNumber) {
-  for (unsigned int ChannelNumber = 0; ChannelNumber < 4; ChannelNumber++) {
-    switch (index) {
-      case kPulseArea: {
-        Variable[ChannelNumber] = CalculatePulseArea(EventNumber);
-      }
-      case kPulseAmplitude: {
-        Variable[ChannelNumber] = CalculatePulseAmplitude(EventNumber);
-      }
-      case kRiseTime: {
-        Variable[ChannelNumber] = CalculateRiseTime(EventNumber);
-      }
-      case kBaseline: {
-        Variable[ChannelNumber] = CalculateBaseline(EventNumber);
-      }
-    }
-  }
   return;
-}
-
-double DRS4::CalculatePulseArea(int EventNumber) {
-  return 0;
-}
-
-double DRS4::CalculatePulseAmplitude(int EventNumber) {
-  return 0;
-}
-
-double DRS4::CalculateRiseTime(int EventNumber) {
-  return 0;
-}
-
-double DRS4::CalculateBaseline(int EventNumber) {
-  return 0;
 }

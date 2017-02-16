@@ -6,13 +6,8 @@
 #include "DRS4.h"
 
 int main() {
-  DRS4* DataSet1 = new DRS4("./Cryo100mV1kall.bin");
-  DataSet1->Decode(-1);
-  DataSet1->SaveWaveformToROOTFile();
-  DataSet1->SaveDataToROOTFile(kPulseArea);
-  DataSet1->SaveDataToROOTFile(kPulseAmplitude);
-  DataSet1->SaveDataToROOTFile(kRiseTime);
-  DataSet1->SaveDataToROOTFile(kBaseline);
+  DRS4* DataSet1 = new DRS4("./VUVTPB5mV_cosmic.dat");
+  DataSet1->Decode(100000);
 
   return 0;
 }

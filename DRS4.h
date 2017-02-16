@@ -65,18 +65,6 @@ public:
   void AccessTimeInfo();
   void AccessEventInfo();
   void Decode(int);
-  void SaveWaveformToROOTFile();
-  void SaveDataToROOTFile(VariableIndex);
-
-private:
-  void SavingData(VariableIndex);
-  std::string GetVariableName(VariableIndex);
-
-  void   GetVariableValue(VariableIndex, int);
-  double CalculatePulseArea(int);
-  double CalculatePulseAmplitude(int);
-  double CalculateRiseTime(int);
-  double CalculateBaseline(int);
 
 private:
   std::string DataFileName;
@@ -101,12 +89,6 @@ private:
   double Time[4][1024];
   float TimeBinWidth[4][1024];
 
-  std::vector<RAWWAVEFORM> RawWaveformDataVector;
-
-  /*
-    Temporary variables to initiate the data branches
-  */
-  double Variable[4];
 };
 
 #endif
